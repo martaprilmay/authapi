@@ -91,7 +91,7 @@ def status(request):
         except Session.DoesNotExist:
             return Response({'Error': 'Login required / Session expired, please re-login'},
                             status=HTTP_403_FORBIDDEN)
-        print(request.session.get_expiry_age())
+        
         # now we checked that session is in place
         # to access session use:
         # session = request.session   or
