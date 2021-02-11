@@ -24,8 +24,9 @@ def reg(request):
     password = data['password']
 
     if validate_password(password):
+        hash_passwrd = hash(password)
         try:
-            UserData.objects.create(login=lgn, password=password)
+            UserData.objects.create(login=lgn, password=hash_passwrd)
         except IntegrityError:  # login must be unique (DB validation)
             return Response({'Error': f'The name: {lgn} is already taken'},
                             status=HTTP_403_FORBIDDEN)
@@ -38,7 +39,7 @@ def reg(request):
 
 def create_session(response, user):
     """ Creates and saves in db new session according to django docs.
-        Saves user id is session (user obj passed as argument).
+        Saves user id in session (user obj passed as argument).
         Sets sessionid cookie to a response (response obj passed as argument).
         Sessionid cookie lifetime - 2 weeks
     """
@@ -61,7 +62,7 @@ def login(request):
                         status=HTTP_403_FORBIDDEN)
 
     lgn = data['login']
-    password = data['password']
+    password = hash(data['password'])
 
     try:
         user = UserData.objects.get(login=lgn, password=password)
@@ -93,7 +94,7 @@ def status(request):
         except Session.DoesNotExist:
             return Response({'Error': 'Login required / Session expired, please re-login'},
                             status=HTTP_403_FORBIDDEN)
-        print(request.session['uid'])
+
         # now we checked that session is in place
         # to access session use:
         # session = request.session   or
