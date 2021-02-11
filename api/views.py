@@ -27,7 +27,7 @@ def reg(request):
         try:
             UserData.objects.create(login=lgn, password=password)
         except IntegrityError:  # login must be unique (DB validation)
-            return Response({'Error': f'The name: {login} is already taken'},
+            return Response({'Error': f'The name: {lgn} is already taken'},
                             status=HTTP_403_FORBIDDEN)
     else:
         return Response({'Error': 'Password should contain letters, digits and symbols'},
@@ -36,13 +36,15 @@ def reg(request):
     return Response(status=HTTP_201_CREATED)
 
 
-def create_session(response):
+def create_session(response, user):
     """ Creates and saves in db new session according to django docs.
-        Sets sessionid cookie to a response (passed as argument).
+        Saves user id is session (user obj passed as argument).
+        Sets sessionid cookie to a response (response obj passed as argument).
         Sessionid cookie lifetime - 2 weeks
     """
     new_session = SessionStore()
     new_session.create()
+    new_session['uid'] = user.pk
     new_session.save()
 
     sessionid = new_session.session_key
@@ -62,7 +64,7 @@ def login(request):
     password = data['password']
 
     try:
-        UserData.objects.get(login=lgn, password=password)
+        user = UserData.objects.get(login=lgn, password=password)
     except UserData.DoesNotExist:
         return Response({'Error': 'Wrong login or password'},
                         status=HTTP_403_FORBIDDEN)
@@ -75,9 +77,9 @@ def login(request):
             # so we need to check if it's still in db
             Session.objects.get(pk=request.COOKIES['sessionid'])
         except Session.DoesNotExist:
-            create_session(response)    # create new session if old expired
+            create_session(response, user)    # create new session if old expired
     else:
-        create_session(response)    # create new session if no sessionid
+        create_session(response, user)    # create new session if no sessionid
 
     return response
 
@@ -91,7 +93,7 @@ def status(request):
         except Session.DoesNotExist:
             return Response({'Error': 'Login required / Session expired, please re-login'},
                             status=HTTP_403_FORBIDDEN)
-        print(request.session.get_expiry_age())
+        print(request.session['uid'])
         # now we checked that session is in place
         # to access session use:
         # session = request.session   or
