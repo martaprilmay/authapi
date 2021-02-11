@@ -1,4 +1,5 @@
 import datetime
+from hashlib import sha256
 
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
@@ -24,9 +25,10 @@ def reg(request):
     password = data['password']
 
     if validate_password(password):
-        hash_passwrd = hash(password)
+        encoded_password = password.encode()
+        hashed_password = sha256(encoded_password).hexdigest()
         try:
-            UserData.objects.create(login=lgn, password=hash_passwrd)
+            UserData.objects.create(login=lgn, password=hashed_password)
         except IntegrityError:  # login must be unique (DB validation)
             return Response({'Error': f'The name: {lgn} is already taken'},
                             status=HTTP_403_FORBIDDEN)
@@ -62,10 +64,12 @@ def login(request):
                         status=HTTP_403_FORBIDDEN)
 
     lgn = data['login']
-    password = hash(data['password'])
+    password = data['password']
+    encoded_password = password.encode()
+    hashed_password = sha256(encoded_password).hexdigest()
 
     try:
-        user = UserData.objects.get(login=lgn, password=password)
+        user = UserData.objects.get(login=lgn, password=hashed_password)
     except UserData.DoesNotExist:
         return Response({'Error': 'Wrong login or password'},
                         status=HTTP_403_FORBIDDEN)
